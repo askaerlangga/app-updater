@@ -1,0 +1,31 @@
+name: Build and Release .deb
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x scripts/make_deb.sh
+
+      - name: Build Debian Package
+        run: ./scripts/make_deb.sh
+
+      - name: Create Release and Upload .deb
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-updater_1.0.0_all.deb
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

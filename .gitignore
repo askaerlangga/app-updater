@@ -1,0 +1,30 @@
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Debian package builds (artifacts)
+*.deb
+*.tar.gz
+
+# Temporary or backup files
+*.tmp
+*.bak
+*~
+.*.swp
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
