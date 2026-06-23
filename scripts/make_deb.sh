@@ -83,6 +83,13 @@ cp -v "$PROJECT_DIR/window.py" "$BUILD_DIR/usr/share/app-updater/"
 cp -v "$PROJECT_DIR/application.py" "$BUILD_DIR/usr/share/app-updater/"
 cp -v "$PROJECT_DIR/updater_backend.py" "$BUILD_DIR/usr/share/app-updater/"
 
+# 5b. Copy bundled external binaries if present
+if [ -f "$PROJECT_DIR/bin/appimageupdatetool" ]; then
+    echo "Bundling appimageupdatetool into /usr/bin..."
+    cp -v "$PROJECT_DIR/bin/appimageupdatetool" "$BUILD_DIR/usr/bin/appimageupdatetool"
+    chmod +x "$BUILD_DIR/usr/bin/appimageupdatetool"
+fi
+
 # 6. Build Debian package
 echo "Building Debian package (.deb)..."
 dpkg-deb --build "$BUILD_DIR" "$PROJECT_DIR/$DEB_NAME"

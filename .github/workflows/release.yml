@@ -31,6 +31,13 @@ jobs:
       - name: Install build tools
         run: sudo apt-get install -y dpkg-dev fakeroot
 
+      - name: Download and verify appimageupdatetool for bundling
+        run: |
+          mkdir -p bin
+          curl -L -o bin/appimageupdatetool https://github.com/AppImageCommunity/AppImageUpdate/releases/download/continuous/appimageupdatetool-x86_64.AppImage
+          echo "8d17a50e2f7502edacab48216d1b491de3669935858591ea0026cc2db375967c  bin/appimageupdatetool" | sha256sum --check
+          chmod +x bin/appimageupdatetool
+
       - name: Make script executable
         run: chmod +x scripts/make_deb.sh
 

@@ -28,3 +28,6 @@ ENV/
 *.njsproj
 *.sln
 *.sw?
+
+# Bundled binary output folder
+bin/
