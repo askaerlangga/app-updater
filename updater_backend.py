@@ -114,6 +114,9 @@ def check_apt_updates():
         # requesting sudo permissions during update checking.
         for pkg in cache:
             if pkg.is_upgradable:
+                # Skip packages held back due to phased updates
+                if hasattr(pkg, 'phasing_applied') and pkg.phasing_applied:
+                    continue
                 inst_ver = pkg.installed.version if pkg.installed else "None"
                 cand_ver = pkg.candidate.version if pkg.candidate else "None"
                 size = pkg.candidate.size if pkg.candidate else 0
