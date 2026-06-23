@@ -1,7 +1,7 @@
 import os
 import subprocess
 import hashlib
-from datetime import datetime, timezone
+import time
 
 def calculate_hashes(filepath):
     sha256 = hashlib.sha256()
@@ -51,8 +51,11 @@ def generate_packages_file(repo_dir):
     subprocess.run(['gzip', '-k', '-f', packages_path], check=True)
 
 def generate_release_file(repo_dir):
-    # Hasilkan tanggal UTC berformat RFC 2822
-    date_str = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    # Hasilkan tanggal UTC berformat RFC 2822 dalam Bahasa Inggris (locale-independent)
+    t = time.gmtime()
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    date_str = f"{days[t.tm_wday]}, {t.tm_mday:02d} {months[t.tm_mon - 1]} {t.tm_year:d} {t.tm_hour:02d}:{t.tm_min:02d}:{t.tm_sec:02d} +0000"
     
     release_info = [
         "Origin: App Updater Repository",
