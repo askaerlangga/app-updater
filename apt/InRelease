@@ -1,0 +1,35 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Origin: App Updater Repository
+Label: App Updater
+Suite: stable
+Codename: stable
+Architectures: all
+Components: main
+Description: APT Repository for App Updater Desktop Application
+MD5Sum:
+ 122c070deb8c41dc6d4f7fa758f1a076 644 Packages
+ 7fcfd37bbe70acb59be3d3b6aecc61b0 457 Packages.gz
+SHA1:
+ 9f6a8eac89eb9868a8ae29f31a6c4c29c303805b 644 Packages
+ 2604c84fb4bc71083391697ebbc31084ebc46b51 457 Packages.gz
+SHA256:
+ bdae13499425e3260d08f3430eca4e22a70984cf18475008d2cb6b1507d051ab 644 Packages
+ ec82379fcb690fdaef01bd4f59ceacab0ad85ee293ca0321e93647cfb6de6f52 457 Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEK5odMgNBRDJHvvRDM7W8+h2mYM4FAmo6sP8ACgkQM7W8+h2m
+YM5M8g/+LYDG3IsieXB3Y0UbKnYC6hLY6KJqm3NiZiI68/D9xtl6X1LgYx3PivwI
+r+LYuWkZ8fdwZh6WfJhCuqeRmletlQuLg2QsfTgrmHNufCfwMwEf87yosvm9ChNH
+l414j5Yv5+SUR5bOnDnn9lp4rzOcJ/xoEk6dwjKpRPJUdYBSUniq62K+88X7tHhS
+Jar5A22AblhFXhMrhYRd5trdY8MQK7/rPDAXO4LWbknG9MOV9mSqc6CpnNYRvFnd
+i+Y178VAZ8vLfoGVS5Jmgo4rtI1FQrLNZSxnhTeL5RLBi54pz0r2hhuAA+seOeHJ
+Of+sM6QGmS819RNWZgtNTgxdMsNhqA5hvI+XwtW1LTEbKRyUmzsvoQU08QrLaRge
+W8AEjVEOBKicPatH/Wvlab7EBWTcdSzBpubnsCzJG94fDN14PIq96195Ixe0LF74
+tqjEupgnygcr3hajxyom+V3fyJR54xrc6s1IZ6FXDI05BCAuhd4X+dMeDkZoRXl1
+I9HfaXIq1uJUU6j1ZQaF6yMquemJJflxC3k5mjQp/3xThYuZHJ6G0dJxGDl4HTug
+CJp9oATXAlCN5A357fb0Ck74pVklVcqcFwcJS6ZW/1nMRQLu7rBP09kkcbHu63Of
+H9RofbksF3rnpH5U+IvZ+LM+pWYIVLPFe3qxondAecLV90jKhdo=
+=J+5J
+-----END PGP SIGNATURE-----
