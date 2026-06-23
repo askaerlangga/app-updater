@@ -9,10 +9,10 @@ Description: Graphical package updater for APT, Flatpak, Snap, and AppImage.
  A native GTK 4 and Libadwaita desktop application that monitors and installs
  system packages, Flatpaks, Snaps, and AppImages in a unified dashboard.
 Filename: app-updater_1.0.0_all.deb
-Size: 15258
-MD5sum: 6b29e70fbf751d97bdc70967541eeda2
-SHA1: 66f25ec8046b0e9fd8f33bfae22e25153acb8fbd
-SHA256: 861064532ceb73b38b33e139af63c9166f0a95d3c613f28d4a1623d8c56714d0
+Size: 35672850
+MD5sum: 29ebec5611b7c173e4083d5539316c7a
+SHA1: 80e82bb41f23f7e02c87f4ca971eea180c819c32
+SHA256: ab184158af0b0687e9f812cc6e93b558c54b1de1c02e470d5a15bbdfce9784b5
 
 Package: app-updater
 Version: 1.0.1
