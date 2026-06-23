@@ -1,6 +1,7 @@
 import os
 import subprocess
 import hashlib
+from datetime import datetime, timezone
 
 def calculate_hashes(filepath):
     sha256 = hashlib.sha256()
@@ -50,11 +51,15 @@ def generate_packages_file(repo_dir):
     subprocess.run(['gzip', '-k', '-f', packages_path], check=True)
 
 def generate_release_file(repo_dir):
+    # Hasilkan tanggal UTC berformat RFC 2822
+    date_str = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    
     release_info = [
         "Origin: App Updater Repository",
         "Label: App Updater",
         "Suite: stable",
         "Codename: stable",
+        "Date: " + date_str,
         "Architectures: all",
         "Components: main",
         "Description: APT Repository for App Updater Desktop Application",
