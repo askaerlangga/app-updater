@@ -1,31 +1,136 @@
-name: Build and Release .deb
+name: Build, Release & Publish APT Repository
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build-deb:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Get version from git tag
+        id: get_version
+        run: |
+          # Ambil nama tag dan hapus awalan 'v' jika ada
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Install build tools
+        run: sudo apt-get install -y dpkg-dev fakeroot
 
       - name: Make script executable
         run: chmod +x scripts/make_deb.sh
 
       - name: Build Debian Package
-        run: ./scripts/make_deb.sh
+        run: ./scripts/make_deb.sh ${{ steps.get_version.outputs.version }}
+
+      - name: Upload deb package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-deb
+          path: "*.deb"
+          retention-days: 7
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [build-deb]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download built .deb package
+        uses: actions/download-artifact@v4
+        with:
+          name: app-deb
+          path: .
 
       - name: Create Release and Upload .deb
         uses: softprops/action-gh-release@v2
         with:
-          files: app-updater_1.0.0_all.deb
+          files: app-updater_${{ needs.build-deb.outputs.version }}_all.deb
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-apt-repo:
+    runs-on: ubuntu-latest
+    needs: [build-deb]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout repository (default ref/tag)
+        uses: actions/checkout@v4
+
+      - name: Save setup files to tmp directory
+        run: |
+          mkdir -p /tmp/apt-setup
+          cp scripts/generate_apt_repo.py /tmp/apt-setup/
+          cp data/apt/key.gpg /tmp/apt-setup/ || true
+
+      - name: Switch to gh-pages branch
+        run: |
+          git fetch origin gh-pages || true
+          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf .
+            mkdir -p apt
+            echo "# APT Repository Pages" > README.md
+            git add README.md
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "Initialize gh-pages branch"
+            git push origin gh-pages
+          fi
+
+      - name: Download built .deb package
+        uses: actions/download-artifact@v4
+        with:
+          name: app-deb
+          path: temp-debs
+
+      - name: Prepare APT structures
+        run: |
+          mkdir -p apt
+          # Salin kunci publik yang disimpan sementara jika ada
+          cp /tmp/apt-setup/key.gpg apt/key.gpg || true
+          # Salin berkas .deb baru ke folder apt/
+          cp temp-debs/*.deb apt/
+          # Jalankan skrip pembangun flat repository
+          python3 /tmp/apt-setup/generate_apt_repo.py apt
+          # Bersihkan file sementara
+          rm -rf temp-debs
+
+      - name: Import GPG Key and Setup Signing
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Create Signatures (Release.gpg & InRelease)
+        run: |
+          cd apt
+          rm -f Release.gpg InRelease
+          # Buat tanda tangan terpisah
+          gpg --batch --yes --detach-sign --armor -o Release.gpg Release
+          # Buat tanda tangan menyatu (InRelease)
+          gpg --batch --yes --clearsign --armor -o InRelease Release
+          cd ..
+
+      - name: Commit and Push to gh-pages
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add apt/
+          git commit -m "Update APT repository index for version ${{ needs.build-deb.outputs.version }}" || exit 0
+          git push origin gh-pages

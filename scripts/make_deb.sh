@@ -3,7 +3,10 @@
 set -e
 
 BUILD_DIR="/tmp/app-updater-build"
-DEB_NAME="app-updater_1.0.0_all.deb"
+VERSION="${1:-1.0.0}"
+# Get the version without leading 'v' if present (e.g., v1.0.0 -> 1.0.0)
+VERSION="${VERSION#v}"
+DEB_NAME="app-updater_${VERSION}_all.deb"
 # Get the root directory of the project (parent of the scripts/ folder)
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -16,9 +19,9 @@ mkdir -p "$BUILD_DIR/usr/share/applications"
 
 # 1. Create control file
 echo "Writing DEBIAN/control..."
-cat << 'EOF' > "$BUILD_DIR/DEBIAN/control"
+cat << EOF > "$BUILD_DIR/DEBIAN/control"
 Package: app-updater
-Version: 1.0.0
+Version: ${VERSION}
 Section: utils
 Priority: optional
 Architecture: all

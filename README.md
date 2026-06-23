@@ -34,10 +34,26 @@ The project conforms to the Single Responsibility Principle:
 ## Installation
 
 ### Debian Package (.deb)
-The recommended installation method for Debian-based systems:
+
+#### Method 1: Using the APT Repository (Recommended)
+You can register our official APT repository to receive automatic updates:
 
 ```bash
-sudo apt install ./app-updater_1.0.0_all.deb
+# 1. Download the repository verification key
+wget -qO- https://askaerlangga.github.io/app-updater/apt/key.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/app-updater-keyring.gpg > /dev/null
+
+# 2. Add the APT repository
+echo "deb [signed-by=/usr/share/keyrings/app-updater-keyring.gpg] https://askaerlangga.github.io/app-updater/apt/ ./" | sudo tee /etc/apt/sources.list.d/app-updater.list
+
+# 3. Update repositories and install
+sudo apt update && sudo apt install app-updater
+```
+
+#### Method 2: Manual Installation
+Download the latest `.deb` package from the Releases page and run:
+
+```bash
+sudo apt install ./app-updater_<version>_all.deb
 ```
 
 This registers the application system-wide, generates the desktop launcher, registers the autostart daemon, and resolves the required dependencies automatically.
