@@ -5,31 +5,32 @@ Origin: App Updater Repository
 Label: App Updater
 Suite: stable
 Codename: stable
+Date: Tue, 23 Jun 2026 16:31:12 +0000
 Architectures: all
 Components: main
 Description: APT Repository for App Updater Desktop Application
 MD5Sum:
- 122c070deb8c41dc6d4f7fa758f1a076 644 Packages
- 7fcfd37bbe70acb59be3d3b6aecc61b0 457 Packages.gz
+ 45e5531908f96ab8ec672e82671a66a5 1289 Packages
+ c8ea2d5d7688aedb2ac605bbe36f5dbe 574 Packages.gz
 SHA1:
- 9f6a8eac89eb9868a8ae29f31a6c4c29c303805b 644 Packages
- 2604c84fb4bc71083391697ebbc31084ebc46b51 457 Packages.gz
+ d838aa58fe12e3fc9adff2c864d4924c93caaf3c 1289 Packages
+ a8c2600930a34c6ea1beae605a9c58009a515c0b 574 Packages.gz
 SHA256:
- bdae13499425e3260d08f3430eca4e22a70984cf18475008d2cb6b1507d051ab 644 Packages
- ec82379fcb690fdaef01bd4f59ceacab0ad85ee293ca0321e93647cfb6de6f52 457 Packages.gz
+ 292f5b1849e69d029e271a143a9cb7745f45c2c2afb153a9ff0e9efd905b6d6e 1289 Packages
+ 21bb10498430392ac384e97e788624dfdea11f1475f3a63867959ccaf2e1f34a 574 Packages.gz
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEEK5odMgNBRDJHvvRDM7W8+h2mYM4FAmo6sP8ACgkQM7W8+h2m
-YM5M8g/+LYDG3IsieXB3Y0UbKnYC6hLY6KJqm3NiZiI68/D9xtl6X1LgYx3PivwI
-r+LYuWkZ8fdwZh6WfJhCuqeRmletlQuLg2QsfTgrmHNufCfwMwEf87yosvm9ChNH
-l414j5Yv5+SUR5bOnDnn9lp4rzOcJ/xoEk6dwjKpRPJUdYBSUniq62K+88X7tHhS
-Jar5A22AblhFXhMrhYRd5trdY8MQK7/rPDAXO4LWbknG9MOV9mSqc6CpnNYRvFnd
-i+Y178VAZ8vLfoGVS5Jmgo4rtI1FQrLNZSxnhTeL5RLBi54pz0r2hhuAA+seOeHJ
-Of+sM6QGmS819RNWZgtNTgxdMsNhqA5hvI+XwtW1LTEbKRyUmzsvoQU08QrLaRge
-W8AEjVEOBKicPatH/Wvlab7EBWTcdSzBpubnsCzJG94fDN14PIq96195Ixe0LF74
-tqjEupgnygcr3hajxyom+V3fyJR54xrc6s1IZ6FXDI05BCAuhd4X+dMeDkZoRXl1
-I9HfaXIq1uJUU6j1ZQaF6yMquemJJflxC3k5mjQp/3xThYuZHJ6G0dJxGDl4HTug
-CJp9oATXAlCN5A357fb0Ck74pVklVcqcFwcJS6ZW/1nMRQLu7rBP09kkcbHu63Of
-H9RofbksF3rnpH5U+IvZ+LM+pWYIVLPFe3qxondAecLV90jKhdo=
-=J+5J
+iQIzBAEBCgAdFiEEK5odMgNBRDJHvvRDM7W8+h2mYM4FAmo6tNAACgkQM7W8+h2m
+YM7uNQ//Wk1HLo82mFwbJXEXfwFpyzI0yEsWZ2W3wgMliaRn1Hs6V0AlFYXxf0Fh
+UxBodIfRCEQtBi/StiqfJH/iEIj55uERMtgEcbhdnR0RvwQ7HDm8WK0Cizd0wYMY
+aFz+ffdqrmMxmhAS/hzkkBKoObvLEeAnnJVOdGLbwO5rELZrXeDt08G/+8iTyq26
+WRg0IeREPGhBsqtvZqrdZ43H0D+3jkNS3KEfKBfgeLldymktGxX2WmjpEZqeu/ZZ
+iw6EsTDg+Om/SB0XwsVUDZo3U3izDK7CBsOhCfNJdFfcP4hG+Bua2kbn6MTl8QVP
+pWsuF0LS9aa0PoQevNLtfsniUOvmICfCHRyxjmTEvDwn2rfs8oHIxYc5z9iqVikW
+x2xSg+o8W7AvfPN/lM6LmoxC9eFugapPzAUon1MggqVp0jfTgJYsOr+gss0tpZkz
+X8Xkso9CDrooIFLHe8Tpy7aUmHfKObo3O8Mi9FBq+OyqYklLWLegiqp/rHRGKLM7
+WiR398Eoq2492j5wweFFjWC3Vs2zBIGunKH1ahUB/GzRZzxRi/IZ/jxQ6Y0LC434
+7IynXqemmNiZUukha18cMgQLkzZfk8J+1UjZ66W+5QECxOrA2S/4B267m6om3aQO
+CHK8Cv5pGLMekUZA55xx2QuGKXuZmyiWLIp6k/VrwWqmSjx3bmc=
+=MudU
 -----END PGP SIGNATURE-----
