@@ -4,6 +4,7 @@ import subprocess
 import urllib.request
 import threading
 import hashlib
+import signal
 from concurrent.futures import ThreadPoolExecutor
 
 # Try to import apt. If not available, we'll gracefully handle it (though we checked and it is available)
@@ -62,7 +63,7 @@ def download_appimage_tool(progress_callback=None):
         
         # Download to a temporary location first to prevent overwriting on check failure
         temp_path = APPIMAGE_TOOL_PATH + ".tmp"
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             with open(temp_path, 'wb') as out_file:
                 shutil.copyfileobj(response, out_file)
                 
@@ -147,7 +148,8 @@ def check_flatpak_updates():
         # Run flatpak remote-ls --updates to get available updates
         res = subprocess.run(
             ["flatpak", "remote-ls", "--updates", "--columns=application,name,version,download-size"],
-            capture_output=True, text=True, check=True
+            capture_output=True, text=True, check=True,
+            timeout=30
         )
         
         lines = res.stdout.strip().split('\n')
@@ -206,7 +208,8 @@ def check_snap_updates():
         # snap refresh --list lists snaps with updates
         res = subprocess.run(
             ["snap", "refresh", "--list"],
-            capture_output=True, text=True
+            capture_output=True, text=True,
+            timeout=30
         )
         
         # If output contains "All snaps up to date" or is empty
@@ -247,7 +250,8 @@ def _check_single_appimage(path, tool_path):
         # Exit code 1 means update available. 0 means up to date.
         res = subprocess.run(
             [tool_path, "--check-for-update", path],
-            capture_output=True, text=True
+            capture_output=True, text=True,
+            timeout=10
         )
         filename = os.path.basename(path)
         if res.returncode == 1:
@@ -329,9 +333,13 @@ def cancel_updates():
     is_cancelled = True
     if active_process:
         try:
-            active_process.terminate()
+            os.killpg(os.getpgid(active_process.pid), signal.SIGTERM)
         except Exception as e:
-            print(f"Error terminating process: {e}")
+            print(f"Error terminating process group: {e}")
+            try:
+                active_process.terminate()
+            except Exception as ex:
+                print(f"Error terminating process: {ex}")
 
 def execute_updates(sources_to_update, line_callback, done_callback):
     """
@@ -444,12 +452,16 @@ def run_command_stream(cmd, on_line_callback):
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            universal_newlines=True
+            universal_newlines=True,
+            preexec_fn=os.setsid
         )
         active_process = process
         for line in iter(process.stdout.readline, ''):
             if is_cancelled:
-                process.terminate()
+                try:
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                except Exception:
+                    process.terminate()
                 break
             on_line_callback(line)
         process.stdout.close()

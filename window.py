@@ -1,5 +1,8 @@
 import os
 import threading
+import shutil
+import subprocess
+from collections import defaultdict
 from typing import Dict, Any, List
 import gi
 
@@ -152,14 +155,14 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         provider.load_from_data(b"""
             .terminal {
                 font-family: monospace;
-                background-color: #1e1e1e;
-                color: #00ff66;
-                font-size: 11pt;
+                background-color: #1e1e2e;
+                color: #a6e3a1;
+                font-size: 10.5pt;
             }
             .terminal-container {
                 border: 1px solid @borders;
-                border-radius: 6px;
-                background-color: #1e1e1e;
+                border-radius: 8px;
+                background-color: #1e1e2e;
             }
         """)
         Gtk.StyleContext.add_provider_for_display(
@@ -342,7 +345,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             self.updates_group.add(self.apt_expander)
             has_group_content = True
             total_updates += len(data['APT'])
-            from collections import defaultdict
             grouped_apt = defaultdict(list)
             for pkg in data['APT']:
                 s_name = pkg.get('source_name') or pkg['name']
@@ -798,7 +800,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             self.on_setting_changed("appimage_enabled", active)
   
     def on_preferences_clicked(self, btn: Gtk.Button | None) -> None:
-        import shutil
         pref_win = Adw.PreferencesDialog(title="Preferences")
         
         page = Adw.PreferencesPage(title="General Settings")
@@ -868,69 +869,52 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         pref_win.present(self)
 
     def on_shortcuts_clicked(self, action: Gio.SimpleAction, param: GLib.Variant | None) -> None:
-        shortcuts_win = Gtk.ShortcutsWindow(
-            transient_for=self,
-            modal=True
-        )
+        dialog = Adw.ShortcutsDialog()
         
-        section = Gtk.ShortcutsSection(title="Shortcuts", section_name="shortcuts")
+        # General Section
+        section_general = Adw.ShortcutsSection(title="General")
         
-        # General Shortcuts Group
-        group_general = Gtk.ShortcutsGroup(title="General")
-        
-        shortcut_scan = Gtk.ShortcutsShortcut(
+        section_general.add(Adw.ShortcutsItem(
             title="Scan for Updates",
             accelerator="<Control>r"
-        )
-        group_general.add_shortcut(shortcut_scan)
-        
-        shortcut_pref = Gtk.ShortcutsShortcut(
+        ))
+        section_general.add(Adw.ShortcutsItem(
             title="Open Preferences",
             accelerator="<Control>comma"
-        )
-        group_general.add_shortcut(shortcut_pref)
-
-        shortcut_help = Gtk.ShortcutsShortcut(
+        ))
+        section_general.add(Adw.ShortcutsItem(
             title="Keyboard Shortcuts",
             accelerator="<Control>question"
-        )
-        group_general.add_shortcut(shortcut_help)
-        
-        shortcut_quit = Gtk.ShortcutsShortcut(
+        ))
+        section_general.add(Adw.ShortcutsItem(
             title="Quit Application",
             accelerator="<Control>q"
-        )
-        group_general.add_shortcut(shortcut_quit)
+        ))
         
-        section.add_group(group_general)
+        dialog.add(section_general)
         
-        # System Updates Shortcuts Group
-        group_updates = Gtk.ShortcutsGroup(title="System Updates")
-        
-        shortcut_update = Gtk.ShortcutsShortcut(
+        # System Updates Section
+        section_updates = Adw.ShortcutsSection(title="System Updates")
+        section_updates.add(Adw.ShortcutsItem(
             title="Update All Packages",
             accelerator="<Control>u"
-        )
-        group_updates.add_shortcut(shortcut_update)
+        ))
         
-        section.add_group(group_updates)
-        
-        shortcuts_win.add_section(section)
-        shortcuts_win.present()
+        dialog.add(section_updates)
+        dialog.present(self)
 
     def on_about_clicked(self, action: Gio.SimpleAction, param: GLib.Variant | None) -> None:
-        about = Adw.AboutWindow(
-            transient_for=self,
+        about = Adw.AboutDialog(
             application_name="App Updater",
             application_icon="system-software-update",
-            version="1.0.0",
+            version="1.1.0",
             developer_name="Aska Erlangga",
             developers=["Aska Erlangga"],
             copyright="© 2026 Aska Erlangga",
             license_type=Gtk.License.GPL_3_0,
             comments="A unified graphical package updater for Linux (APT, Flatpak, Snap, AppImage)."
         )
-        about.present()
+        about.present(self)
 
     def update_preferences_subtitles(self, apt_row: Adw.SwitchRow | None, flatpak_row: Adw.SwitchRow | None, snap_row: Adw.SwitchRow | None, appimage_row: Adw.SwitchRow | None) -> None:
         if apt_row:
@@ -948,10 +932,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 appimage_row.set_subtitle("Checking AppImage files... (requires appimageupdatetool)")
             
         def worker():
-            import shutil
-            import subprocess
-            import os
-            
             # 1. APT Count
             apt_sub = ""
             if apt_row:
