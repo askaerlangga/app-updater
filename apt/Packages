@@ -29,3 +29,19 @@ Size: 35672892
 MD5sum: ca6f9bdc185e0ab99fcc117bf8521abf
 SHA1: 88e5bbeff0514fd4b2d63718348ea31d3f0f2ce7
 SHA256: b34efdb4d9429ebf876ef72067f9ce18eb93358697ccfb3bd27c9510b9c270d3
+
+Package: app-updater
+Version: 1.1.0
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3, python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, python3-apt, policykit-1
+Maintainer: Aska <aska@localhost>
+Description: Graphical package updater for APT, Flatpak, Snap, and AppImage.
+ A native GTK 4 and Libadwaita desktop application that monitors and installs
+ system packages, Flatpaks, Snaps, and AppImages in a unified dashboard.
+Filename: app-updater_1.1.0_all.deb
+Size: 35672890
+MD5sum: 303f9861bff4e67178b0ef857b65fb97
+SHA1: 8692e61067a38206f53f5bf89de0733215b67452
+SHA256: ccdfe4c2711626ab24d3a66d3d868514e495c13cd3763ebb5aaf7c563a4b313c
