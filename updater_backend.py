@@ -138,6 +138,20 @@ def check_apt_updates():
         
     return sorted(updates, key=lambda x: x['name'])
 
+def parse_flatpak_size(size_str):
+    """Parses flatpak size string like '165,6 MB' or '10.2 KB' into bytes."""
+    try:
+        size_str = size_str.strip().replace('\xa0', ' ')
+        parts = size_str.split()
+        if len(parts) < 2:
+            return 0
+        number = float(parts[0].replace(',', '.'))
+        unit = parts[1].upper()
+        multipliers = {'B': 1, 'KB': 1024, 'MB': 1024**2, 'GB': 1024**3}
+        return int(number * multipliers.get(unit, 0))
+    except Exception:
+        return 0
+
 def check_flatpak_updates():
     """Checks for Flatpak updates using remote-ls."""
     updates = []
@@ -152,47 +166,22 @@ def check_flatpak_updates():
             timeout=30
         )
         
-        lines = res.stdout.strip().split('\n')
-        if len(lines) <= 1:
-            return updates # No updates or empty header
-            
-        # First line is header: "Application ID  Name  Version  Download size"
-        # We parse the remaining lines
-        for line in lines[1:]:
-            parts = [p.strip() for p in line.split('\t') if p.strip()]
-            # If split by tab failed (sometimes outputs with spaces), use split by double spaces
+        for line in res.stdout.strip().splitlines():
+            parts = line.split('\t')
             if len(parts) < 2:
-                parts = [p.strip() for p in line.split('  ') if p.strip()]
-                # If still not parsing correctly, split by spaces and try to reconstruct
-                if len(parts) < 2:
-                    parts = [p for p in line.split(' ') if p]
-            
-            if len(parts) >= 2:
-                app_id = parts[0]
-                name = parts[1]
-                
-                # Check version and size
-                version = "Unknown"
-                size = "Unknown size"
-                
-                if len(parts) == 4:
-                    version = parts[2]
-                    size = parts[3]
-                elif len(parts) == 3:
-                    if 'B' in parts[2] or 'bytes' in parts[2] or 'MB' in parts[2] or 'KB' in parts[2]:
-                        size = parts[2]
-                    else:
-                        version = parts[2]
-                
-                updates.append({
-                    'id': app_id,
-                    'name': name,
-                    'current_version': "Installed",
-                    'new_version': version,
-                    'size': size,
-                    'size_bytes': 0,
-                    'source': 'Flatpak'
-                })
+                continue
+            app_id, name = parts[0], parts[1]
+            version = parts[2] if len(parts) > 2 else "Unknown"
+            size = parts[3] if len(parts) > 3 else "Unknown size"
+            updates.append({
+                'id': app_id,
+                'name': name,
+                'current_version': "Installed",
+                'new_version': version,
+                'size': size,
+                'size_bytes': parse_flatpak_size(size),
+                'source': 'Flatpak'
+            })
     except Exception as e:
         print(f"Error checking Flatpak updates: {e}")
         

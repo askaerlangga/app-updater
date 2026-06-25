@@ -326,19 +326,32 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 pass
         self.added_groups.clear()
                 
+        # Compute total download size (only upgradable items)
+        total_size_bytes = 0
+        for source, source_list in data.items():
+            for item in source_list:
+                if source == 'AppImage' and not item.get('upgradable'):
+                    continue
+                total_size_bytes += item.get('size_bytes', 0)
+        
+        total_size_str = updater_backend.format_size(total_size_bytes) if total_size_bytes > 0 else None
+        
         # Recreate updates group
-        self.updates_group = Adw.PreferencesGroup(title="Available Updates")
+        group_subtitle = f"Total download size: {total_size_str}" if total_size_str else None
+        self.updates_group = Adw.PreferencesGroup(title="Available Updates", description=group_subtitle)
         has_group_content = False
                 
         # Populate APT Group
         if data['APT']:
+            apt_size_bytes = sum(p.get('size_bytes', 0) for p in data['APT'])
+            apt_size_str = f" · {updater_backend.format_size(apt_size_bytes)}" if apt_size_bytes > 0 else ""
             self.apt_expander = Adw.ExpanderRow(
                 title="System Updates (APT)",
-                subtitle=f"{len(data['APT'])} packages can be updated"
+                subtitle=f"{len(data['APT'])} packages can be updated{apt_size_str}"
             )
             update_btn = Gtk.Button(icon_name="software-update-available-symbolic")
-            update_btn.set_has_frame(False)
             update_btn.set_tooltip_text("Update APT packages only")
+            update_btn.set_valign(Gtk.Align.CENTER)
             update_btn.connect("clicked", lambda b: self.on_update_single_clicked("APT"))
             self.apt_expander.add_suffix(update_btn)
             
@@ -382,13 +395,15 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 
         # Populate Flatpak Group
         if data['Flatpak']:
+            flatpak_size_bytes = sum(p.get('size_bytes', 0) for p in data['Flatpak'])
+            flatpak_size_str = f" · {updater_backend.format_size(flatpak_size_bytes)}" if flatpak_size_bytes > 0 else ""
             self.flatpak_expander = Adw.ExpanderRow(
                 title="Flatpak Applications",
-                subtitle=f"{len(data['Flatpak'])} applications can be updated"
+                subtitle=f"{len(data['Flatpak'])} applications can be updated{flatpak_size_str}"
             )
             update_btn = Gtk.Button(icon_name="software-update-available-symbolic")
-            update_btn.set_has_frame(False)
             update_btn.set_tooltip_text("Update Flatpak applications only")
+            update_btn.set_valign(Gtk.Align.CENTER)
             update_btn.connect("clicked", lambda b: self.on_update_single_clicked("Flatpak"))
             self.flatpak_expander.add_suffix(update_btn)
             
@@ -407,13 +422,15 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 
         # Populate Snap Group
         if data['Snap']:
+            snap_size_bytes = sum(p.get('size_bytes', 0) for p in data['Snap'])
+            snap_size_str = f" · {updater_backend.format_size(snap_size_bytes)}" if snap_size_bytes > 0 else ""
             self.snap_expander = Adw.ExpanderRow(
                 title="Snap Applications",
-                subtitle=f"{len(data['Snap'])} applications can be updated"
+                subtitle=f"{len(data['Snap'])} applications can be updated{snap_size_str}"
             )
             update_btn = Gtk.Button(icon_name="software-update-available-symbolic")
-            update_btn.set_has_frame(False)
             update_btn.set_tooltip_text("Update Snap applications only")
+            update_btn.set_valign(Gtk.Align.CENTER)
             update_btn.connect("clicked", lambda b: self.on_update_single_clicked("Snap"))
             self.snap_expander.add_suffix(update_btn)
             
@@ -440,13 +457,15 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 
                 if upgradable_count > 0:
                     total_updates += upgradable_count
+                    appimage_size_bytes = sum(ai.get('size_bytes', 0) for ai in appimages if ai.get('upgradable'))
+                    appimage_size_str = f" · {updater_backend.format_size(appimage_size_bytes)}" if appimage_size_bytes > 0 else ""
                     self.appimage_expander = Adw.ExpanderRow(
                         title="AppImage Applications",
-                        subtitle=f"{upgradable_count} applications can be updated"
+                        subtitle=f"{upgradable_count} applications can be updated{appimage_size_str}"
                     )
                     update_btn = Gtk.Button(icon_name="software-update-available-symbolic")
-                    update_btn.set_has_frame(False)
                     update_btn.set_tooltip_text("Update AppImage applications only")
+                    update_btn.set_valign(Gtk.Align.CENTER)
                     update_btn.connect("clicked", lambda b: self.on_update_single_clicked("AppImage"))
                     self.appimage_expander.add_suffix(update_btn)
                     
@@ -907,7 +926,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         about = Adw.AboutDialog(
             application_name="App Updater",
             application_icon="system-software-update",
-            version="1.1.0",
+            version="1.2.0",
             developer_name="Aska Erlangga",
             developers=["Aska Erlangga"],
             copyright="© 2026 Aska Erlangga",
