@@ -3,7 +3,7 @@
 set -e
 
 BUILD_DIR="/tmp/app-updater-build"
-VERSION="${1:-1.1.0}"
+VERSION="${1:-1.2.0}"
 # Get the version without leading 'v' if present (e.g., v1.0.0 -> 1.0.0)
 VERSION="${VERSION#v}"
 DEB_NAME="app-updater_${VERSION}_all.deb"
@@ -82,13 +82,6 @@ cp -v "$PROJECT_DIR/settings.py" "$BUILD_DIR/usr/share/app-updater/"
 cp -v "$PROJECT_DIR/window.py" "$BUILD_DIR/usr/share/app-updater/"
 cp -v "$PROJECT_DIR/application.py" "$BUILD_DIR/usr/share/app-updater/"
 cp -v "$PROJECT_DIR/updater_backend.py" "$BUILD_DIR/usr/share/app-updater/"
-
-# 5b. Copy bundled external binaries if present
-if [ -f "$PROJECT_DIR/bin/appimageupdatetool" ]; then
-    echo "Bundling appimageupdatetool into /usr/bin..."
-    cp -v "$PROJECT_DIR/bin/appimageupdatetool" "$BUILD_DIR/usr/bin/appimageupdatetool"
-    chmod +x "$BUILD_DIR/usr/bin/appimageupdatetool"
-fi
 
 # 6. Build Debian package
 echo "Building Debian package (.deb)..."

@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 import subprocess
 from typing import Any
 import gi
@@ -83,7 +84,7 @@ class AppUpdater(Adw.Application):
             win.check_for_updates()
 
     def setup_desktop_integration(self) -> None:
-        """Creates .desktop application launcher and autostart entry for background execution."""
+        """Creates .desktop application launcher and autostart entry for background execution if not already provided by system."""
         try:
             home = os.path.expanduser("~")
             apps_dir = os.path.join(home, ".local", "share", "applications")
@@ -92,14 +93,27 @@ class AppUpdater(Adw.Application):
             os.makedirs(apps_dir, exist_ok=True)
             os.makedirs(autostart_dir, exist_ok=True)
             
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            main_script = os.path.join(current_dir, "main.py")
-            interpreter = sys.executable
+            # Check if installed system-wide (via .deb)
+            system_app_updater = shutil.which("app-updater")
+            system_desktop = "/usr/share/applications/com.aska.app_updater.desktop"
             
-            desktop_content = f"""[Desktop Entry]
+            if system_app_updater and os.path.exists(system_desktop):
+                exec_cmd = system_app_updater
+                exec_background = f"{system_app_updater} --background"
+            else:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                main_script = os.path.join(current_dir, "main.py")
+                interpreter = sys.executable
+                exec_cmd = f'"{interpreter}" "{main_script}"'
+                exec_background = f'"{interpreter}" "{main_script}" --background'
+                
+                # Write user desktop launcher only if not installed system-wide
+                desktop_path = os.path.join(apps_dir, "com.aska.app_updater.desktop")
+                if not os.path.exists(desktop_path):
+                    desktop_content = f"""[Desktop Entry]
 Name=App Updater
 Comment=Update system packages, Flatpaks, Snaps, and AppImages
-Exec="{interpreter}" "{main_script}"
+Exec={exec_cmd}
 Icon=system-software-update
 Terminal=false
 Type=Application
@@ -107,26 +121,21 @@ Categories=System;Settings;
 StartupNotify=true
 X-GNOME-Autostart-enabled=true
 """
-            
-            # Write to ~/.local/share/applications/com.aska.app_updater.desktop
-            desktop_path = os.path.join(apps_dir, "com.aska.app_updater.desktop")
-            if not os.path.exists(desktop_path):
-                with open(desktop_path, "w") as f:
-                    f.write(desktop_content)
+                    with open(desktop_path, "w") as f:
+                        f.write(desktop_content)
                     
-            # Write autostart entry to ~/.config/autostart/com.aska.app_updater.desktop
-            # Note: Autostart version runs with --background flag
-            autostart_content = f"""[Desktop Entry]
+            # Write autostart entry
+            autostart_path = os.path.join(autostart_dir, "com.aska.app_updater.desktop")
+            if not os.path.exists(autostart_path):
+                autostart_content = f"""[Desktop Entry]
 Name=App Updater Daemon
-Comment=Start App Updater tray icon in background
-Exec="{interpreter}" "{main_script}" --background
+Comment=Start App Updater update scan in background
+Exec={exec_background}
 Icon=system-software-update
 Terminal=false
 Type=Application
 X-GNOME-Autostart-enabled=true
 """
-            autostart_path = os.path.join(autostart_dir, "com.aska.app_updater.desktop")
-            if not os.path.exists(autostart_path):
                 with open(autostart_path, "w") as f:
                     f.write(autostart_content)
                     

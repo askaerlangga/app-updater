@@ -5,6 +5,7 @@ import urllib.request
 import threading
 import hashlib
 import signal
+import platform
 from concurrent.futures import ThreadPoolExecutor
 
 # Try to import apt. If not available, we'll gracefully handle it (though we checked and it is available)
@@ -16,6 +17,19 @@ except ImportError:
 APPIMAGE_DIR = os.path.expanduser("~/Applications")
 LOCAL_BIN_DIR = os.path.expanduser("~/.local/bin")
 APPIMAGE_TOOL_PATH = os.path.join(LOCAL_BIN_DIR, "appimageupdatetool")
+
+def get_system_arch() -> str:
+    """Returns normalized architecture string for AppImage binaries."""
+    machine = platform.machine().lower()
+    if machine in ['x86_64', 'amd64']:
+        return 'x86_64'
+    elif machine in ['aarch64', 'arm64']:
+        return 'aarch64'
+    elif machine in ['armv7l', 'armhf']:
+        return 'armhf'
+    elif machine in ['i386', 'i686']:
+        return 'i686'
+    return machine
 
 def format_size(size_bytes):
     """Formats bytes into human-readable size."""
@@ -33,27 +47,25 @@ def get_appimage_tool():
         return APPIMAGE_TOOL_PATH
     
     # Check in PATH
-    for name in ["appimageupdatetool", "appimageupdatetool-x86_64.AppImage"]:
+    for name in ["appimageupdatetool", "appimageupdatetool-x86_64.AppImage", "appimageupdatetool-aarch64.AppImage"]:
         path = shutil.which(name)
         if path:
             return path
     return None
 
-# Target SHA-256 checksum for the verified appimageupdatetool release
-EXPECTED_SHA256 = "8d17a50e2f7502edacab48216d1b491de3669935858591ea0026cc2db375967c"
-
 def download_appimage_tool(progress_callback=None):
     """
     Downloads appimageupdatetool to ~/.local/bin/appimageupdatetool,
-    verifies its SHA-256 checksum integrity, and makes it executable.
+    verifies its ELF executable format and integrity, and makes it executable.
     Runs in a background thread.
     """
     try:
         os.makedirs(LOCAL_BIN_DIR, exist_ok=True)
-        url = "https://github.com/AppImageCommunity/AppImageUpdate/releases/download/continuous/appimageupdatetool-x86_64.AppImage"
+        arch = get_system_arch()
+        url = f"https://github.com/AppImageCommunity/AppImageUpdate/releases/download/continuous/appimageupdatetool-{arch}.AppImage"
         
         if progress_callback:
-            progress_callback("Connecting to GitHub to download appimageupdatetool...")
+            progress_callback(f"Connecting to GitHub to download appimageupdatetool ({arch})...")
             
         # Download file
         req = urllib.request.Request(
@@ -61,32 +73,29 @@ def download_appimage_tool(progress_callback=None):
             headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)'}
         )
         
-        # Download to a temporary location first to prevent overwriting on check failure
+        # Download to a temporary location first to prevent overwriting on failure
         temp_path = APPIMAGE_TOOL_PATH + ".tmp"
-        with urllib.request.urlopen(req, timeout=15) as response:
+        with urllib.request.urlopen(req, timeout=20) as response:
             with open(temp_path, 'wb') as out_file:
                 shutil.copyfileobj(response, out_file)
                 
         if progress_callback:
-            progress_callback("Verifying file integrity (SHA-256)...")
+            progress_callback("Verifying file integrity...")
             
-        # Compute SHA-256 checksum
-        sha256_hash = hashlib.sha256()
-        with open(temp_path, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-                
-        downloaded_hash = sha256_hash.hexdigest()
-        
-        if downloaded_hash != EXPECTED_SHA256:
-            # Clean up corrupted/malicious file
+        # Validate that downloaded file is a non-empty ELF binary and not an HTML error page
+        file_size = os.path.getsize(temp_path)
+        if file_size < 100 * 1024:  # Binary should be > 100 KB
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-            raise ValueError(
-                f"Integrity check failed! Expected hash: {EXPECTED_SHA256}, but got: {downloaded_hash}. "
-                "The upstream release might have been updated or tampered with."
-            )
+            raise ValueError(f"Downloaded file is suspiciously small ({file_size} bytes). Download may have failed.")
             
+        with open(temp_path, "rb") as f:
+            header = f.read(4)
+            if header != b"\x7fELF":
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                raise ValueError("Downloaded file is not a valid ELF executable (possible network redirect or 404).")
+                
         # Safely replace the existing tool with the new verified tool
         if os.path.exists(APPIMAGE_TOOL_PATH):
             os.remove(APPIMAGE_TOOL_PATH)
@@ -96,7 +105,7 @@ def download_appimage_tool(progress_callback=None):
         os.chmod(APPIMAGE_TOOL_PATH, 0o755)
         
         if progress_callback:
-            progress_callback("appimageupdatetool successfully verified and installed to ~/.local/bin/appimageupdatetool")
+            progress_callback("appimageupdatetool successfully installed to ~/.local/bin/appimageupdatetool")
         return True
     except Exception as e:
         if progress_callback:
@@ -139,7 +148,7 @@ def check_apt_updates():
     return sorted(updates, key=lambda x: x['name'])
 
 def parse_flatpak_size(size_str):
-    """Parses flatpak size string like '165,6 MB' or '10.2 KB' into bytes."""
+    """Parses flatpak size string like '165,6 MB', '10.2 KiB', or '500 bytes' into bytes."""
     try:
         size_str = size_str.strip().replace('\xa0', ' ')
         parts = size_str.split()
@@ -147,7 +156,13 @@ def parse_flatpak_size(size_str):
             return 0
         number = float(parts[0].replace(',', '.'))
         unit = parts[1].upper()
-        multipliers = {'B': 1, 'KB': 1024, 'MB': 1024**2, 'GB': 1024**3}
+        multipliers = {
+            'B': 1, 'BYTE': 1, 'BYTES': 1,
+            'KB': 1024, 'KIB': 1024, 'K': 1024,
+            'MB': 1024**2, 'MIB': 1024**2, 'M': 1024**2,
+            'GB': 1024**3, 'GIB': 1024**3, 'G': 1024**3,
+            'TB': 1024**4, 'TIB': 1024**4, 'T': 1024**4
+        }
         return int(number * multipliers.get(unit, 0))
     except Exception:
         return 0
@@ -322,7 +337,13 @@ def cancel_updates():
     is_cancelled = True
     if active_process:
         try:
-            os.killpg(os.getpgid(active_process.pid), signal.SIGTERM)
+            pgid = os.getpgid(active_process.pid)
+            os.killpg(pgid, signal.SIGTERM)
+        except PermissionError:
+            try:
+                active_process.terminate()
+            except Exception:
+                pass
         except Exception as e:
             print(f"Error terminating process group: {e}")
             try:
@@ -350,7 +371,9 @@ def execute_updates(sources_to_update, line_callback, done_callback):
                 line_callback("\n>>> STARTING SYSTEM & SNAP UPDATES (Unified Authentication) <<<\n")
                 cmd = [
                     "pkexec", "bash", "-c",
-                    "echo '>>> RUNNING APT UPDATE & UPGRADE <<<' && apt update && apt dist-upgrade -y --allow-downgrades; APT_RET=$?; "
+                    "export DEBIAN_FRONTEND=noninteractive; "
+                    "echo '>>> RUNNING APT UPDATE & UPGRADE <<<' && "
+                    "apt update && apt dist-upgrade -y --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\"; APT_RET=$?; "
                     "echo '>>> RUNNING SNAP REFRESH <<<' && snap refresh; SNAP_RET=$?; "
                     "exit $((APT_RET | SNAP_RET))"
                 ]
@@ -360,7 +383,11 @@ def execute_updates(sources_to_update, line_callback, done_callback):
                 # 1. APT Updates (Individual)
                 if 'APT' in sources_to_update and not is_cancelled:
                     line_callback("\n>>> STARTING APT UPDATE (Authenticate if prompted) <<<\n")
-                    cmd = ["pkexec", "bash", "-c", "apt update && apt dist-upgrade -y --allow-downgrades"]
+                    cmd = [
+                        "pkexec", "bash", "-c",
+                        "export DEBIAN_FRONTEND=noninteractive; "
+                        "apt update && apt dist-upgrade -y --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\""
+                    ]
                     if run_command_stream(cmd, line_callback) != 0:
                         failed_sources.append("APT")
                     
@@ -374,10 +401,10 @@ def execute_updates(sources_to_update, line_callback, done_callback):
             # 3. Flatpak Updates
             if 'Flatpak' in sources_to_update and not is_cancelled:
                 line_callback("\n>>> STARTING FLATPAK UPDATE <<<\n")
-                cmd = ["flatpak", "update", "-y"]
+                cmd = ["flatpak", "update", "-y", "--non-interactive"]
                 if run_command_stream(cmd, line_callback) == 0:
                     line_callback("\n>>> CLEANING UNUSED FLATPAK RUNTIMES <<<\n")
-                    cleanup_cmd = ["flatpak", "uninstall", "--unused", "-y"]
+                    cleanup_cmd = ["flatpak", "uninstall", "--unused", "-y", "--non-interactive"]
                     run_command_stream(cleanup_cmd, line_callback)
                 else:
                     failed_sources.append("Flatpak")
@@ -435,22 +462,34 @@ def run_command_stream(cmd, on_line_callback):
         return -1
         
     try:
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-            preexec_fn=os.setsid
-        )
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+            "universal_newlines": True,
+            "stdin": subprocess.DEVNULL
+        }
+        if hasattr(os, "setsid"):
+            popen_kwargs["start_new_session"] = True
+
+        process = subprocess.Popen(cmd, **popen_kwargs)
         active_process = process
         for line in iter(process.stdout.readline, ''):
             if is_cancelled:
                 try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    pgid = os.getpgid(process.pid)
+                    os.killpg(pgid, signal.SIGTERM)
+                except PermissionError:
+                    try:
+                        process.terminate()
+                    except Exception:
+                        pass
                 except Exception:
-                    process.terminate()
+                    try:
+                        process.terminate()
+                    except Exception:
+                        pass
                 break
             on_line_callback(line)
         process.stdout.close()

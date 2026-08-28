@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 import shutil
 import subprocess
@@ -88,9 +89,10 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.status_page.set_child(self.status_box)
         
         # Loading Spinner Overlay
-        self.spinner = Adw.Spinner()
+        self.spinner = Gtk.Spinner()
         self.spinner.set_halign(Gtk.Align.CENTER)
         self.spinner.set_valign(Gtk.Align.CENTER)
+        self.spinner.set_size_request(32, 32)
         self.status_box.append(self.spinner)
         
         # Cancel Button (will be appended to status_box)
@@ -139,6 +141,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             'AppImage': []
         }
         self.added_groups = set()
+        self.is_checking = False
         
         # Setup Window Actions (GActions)
         self.setup_actions()
@@ -259,8 +262,10 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         
         if loading:
             self.spinner.set_visible(True)
+            self.spinner.start()
             self.status_page.set_title(title)
             self.status_page.set_description(desc)
+            self.status_page.set_icon_name("system-software-update-symbolic")
             self.status_page.set_visible(True)
             self.pref_page.set_visible(False)
             
@@ -273,6 +278,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             
             self.bottom_box.set_visible(is_updating)
         else:
+            self.spinner.stop()
             self.spinner.set_visible(False)
             self.cancel_btn.set_visible(False)
             self.log_expander.set_visible(False)
@@ -285,6 +291,9 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
 
     def check_for_updates(self) -> None:
         """Spawns background threads to check for updates."""
+        if getattr(self, "is_checking", False):
+            return
+        self.is_checking = True
         self.set_loading(True)
         
         # Remove existing preferences groups from page
@@ -313,6 +322,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         threading.Thread(target=thread_func, daemon=True).start()
 
     def on_checks_completed(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
+        self.is_checking = False
         self.updates_data = data
         self.set_loading(False)
         
@@ -442,7 +452,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                     title=snap['name'],
                     subtitle=f"New version: {snap['new_version']}"
                 )
-                icon_image = self.get_app_icon(snap['name'])
+                icon_image = self.get_app_icon([snap.get('id', ''), snap.get('name', '')])
                 row.add_prefix(icon_image)
                 self.snap_expander.add_row(row)
                 
@@ -477,8 +487,8 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                             title=ai['name'],
                             subtitle=f"Status: {ai['new_version']}"
                         )
-                        clean_name = ai['name'].lower().replace(" ", "").replace("-", "").replace("_", "")
-                        icon_image = self.get_app_icon(clean_name)
+                        icon_candidates = self.get_appimage_icon_candidates(ai['name'])
+                        icon_image = self.get_app_icon(icon_candidates)
                         row.add_prefix(icon_image)
                         self.appimage_expander.add_row(row)
 
@@ -511,6 +521,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             self.pref_page.set_visible(False)
             self.status_page.set_title("System Up to Date")
             self.status_page.set_description("All applications and system packages are up to date.")
+            self.status_page.set_icon_name("emblem-ok-symbolic")
             self.update_all_btn.set_sensitive(False)
             if hasattr(self, "update_all_action"):
                 self.update_all_action.set_enabled(False)
@@ -548,11 +559,11 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.start_updates([source_name])
 
     def check_battery_status(self) -> tuple[bool, float]:
-        """Returns (on_battery, percentage) using UPower over D-Bus."""
+        """Returns (on_battery, percentage) using UPower over D-Bus with a safe timeout."""
         try:
             dbus_conn = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
             
-            # Check if OnBattery
+            # Check if OnBattery (1.5s timeout)
             res_on_battery = dbus_conn.call_sync(
                 "org.freedesktop.UPower",
                 "/org/freedesktop/UPower",
@@ -561,12 +572,12 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 GLib.Variant("(ss)", ("org.freedesktop.UPower", "OnBattery")),
                 None,
                 Gio.DBusCallFlags.NONE,
-                -1,
+                1500,
                 None
             )
             on_battery = res_on_battery.unpack()[0]
             
-            # Get display device percentage
+            # Get display device percentage (1.5s timeout)
             res_percentage = dbus_conn.call_sync(
                 "org.freedesktop.UPower",
                 "/org/freedesktop/UPower/devices/DisplayDevice",
@@ -575,7 +586,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", "Percentage")),
                 None,
                 Gio.DBusCallFlags.NONE,
-                -1,
+                1500,
                 None
             )
             percentage = res_percentage.unpack()[0]
@@ -786,6 +797,36 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 unique.append(c)
         return unique
 
+    def get_appimage_icon_candidates(self, filename: str) -> List[str]:
+        """Extracts clean application icon candidate names from AppImage filename."""
+        name = filename
+        for ext in ['.appimage', '.AppImage', '.bin']:
+            if name.endswith(ext):
+                name = name[:-len(ext)]
+                break
+                
+        candidates = [name, name.lower()]
+        # Strip trailing architecture suffixes (-x86_64, _amd64, etc.)
+        clean_arch = re.sub(r'[-_.](x86_64|amd64|aarch64|arm64|armv7l|armhf|i386|i686)$', '', name, flags=re.I)
+        candidates.append(clean_arch)
+        candidates.append(clean_arch.lower())
+        
+        # Strip trailing version patterns (-1.2.3, _v2.0, -2024.1, etc.)
+        clean_ver = re.sub(r'[-_.]v?\d+(\.\d+)*.*$', '', clean_arch)
+        candidates.append(clean_ver)
+        candidates.append(clean_ver.lower())
+        
+        # Remove separators (e.g. obsidian-app -> obsidianapp)
+        candidates.append(clean_ver.lower().replace('-', '').replace('_', ''))
+        
+        seen = set()
+        unique = []
+        for c in candidates:
+            if c and c not in seen:
+                seen.add(c)
+                unique.append(c)
+        return unique
+
     def on_setting_changed(self, key: str, value: Any) -> None:
         self.settings_manager.set(key, value)
         self.check_for_updates()
@@ -888,39 +929,45 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         pref_win.present(self)
 
     def on_shortcuts_clicked(self, action: Gio.SimpleAction, param: GLib.Variant | None) -> None:
-        dialog = Adw.ShortcutsDialog()
-        
-        # General Section
-        section_general = Adw.ShortcutsSection(title="General")
-        
-        section_general.add(Adw.ShortcutsItem(
-            title="Scan for Updates",
-            accelerator="<Control>r"
-        ))
-        section_general.add(Adw.ShortcutsItem(
-            title="Open Preferences",
-            accelerator="<Control>comma"
-        ))
-        section_general.add(Adw.ShortcutsItem(
-            title="Keyboard Shortcuts",
-            accelerator="<Control>question"
-        ))
-        section_general.add(Adw.ShortcutsItem(
-            title="Quit Application",
-            accelerator="<Control>q"
-        ))
-        
-        dialog.add(section_general)
-        
-        # System Updates Section
-        section_updates = Adw.ShortcutsSection(title="System Updates")
-        section_updates.add(Adw.ShortcutsItem(
-            title="Update All Packages",
-            accelerator="<Control>u"
-        ))
-        
-        dialog.add(section_updates)
-        dialog.present(self)
+        if hasattr(Adw, 'ShortcutsDialog'):
+            dialog = Adw.ShortcutsDialog()
+            
+            # General Section
+            section_general = Adw.ShortcutsSection(title="General")
+            section_general.add(Adw.ShortcutsItem(title="Scan for Updates", accelerator="<Control>r"))
+            section_general.add(Adw.ShortcutsItem(title="Open Preferences", accelerator="<Control>comma"))
+            section_general.add(Adw.ShortcutsItem(title="Keyboard Shortcuts", accelerator="<Control>question"))
+            section_general.add(Adw.ShortcutsItem(title="Quit Application", accelerator="<Control>q"))
+            dialog.add(section_general)
+            
+            # System Updates Section
+            section_updates = Adw.ShortcutsSection(title="System Updates")
+            section_updates.add(Adw.ShortcutsItem(title="Update All Packages", accelerator="<Control>u"))
+            dialog.add(section_updates)
+            dialog.present(self)
+        else:
+            # Fallback for GTK 4 / Libadwaita < 1.6
+            try:
+                win = Gtk.ShortcutsWindow(transient_for=self, modal=True)
+                section = Gtk.ShortcutsSection(visible=True)
+                group = Gtk.ShortcutsGroup(title="Shortcuts", visible=True)
+                
+                sc1 = Gtk.ShortcutsShortcut(title="Scan for Updates", accelerator="<Control>r", visible=True)
+                sc2 = Gtk.ShortcutsShortcut(title="Open Preferences", accelerator="<Control>comma", visible=True)
+                sc3 = Gtk.ShortcutsShortcut(title="Keyboard Shortcuts", accelerator="<Control>question", visible=True)
+                sc4 = Gtk.ShortcutsShortcut(title="Quit Application", accelerator="<Control>q", visible=True)
+                sc5 = Gtk.ShortcutsShortcut(title="Update All Packages", accelerator="<Control>u", visible=True)
+                
+                group.append(sc1)
+                group.append(sc2)
+                group.append(sc3)
+                group.append(sc4)
+                group.append(sc5)
+                section.append(group)
+                win.add_child(section)
+                win.present()
+            except Exception:
+                pass
 
     def on_about_clicked(self, action: Gio.SimpleAction, param: GLib.Variant | None) -> None:
         about = Adw.AboutDialog(

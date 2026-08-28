@@ -5,6 +5,13 @@ from typing import Any, Dict
 class SettingsManager:
     """Manages the settings and state serialization for App Updater."""
     
+    DEFAULT_SETTINGS: Dict[str, Any] = {
+        "apt_enabled": True,
+        "flatpak_enabled": True,
+        "snap_enabled": True,
+        "appimage_enabled": True
+    }
+
     def __init__(self) -> None:
         self.settings: Dict[str, Any] = self.load_settings()
 
@@ -12,18 +19,16 @@ class SettingsManager:
         """Loads configuration from settings.json or returns default settings."""
         config_dir = os.path.expanduser("~/.config/app-updater")
         config_path = os.path.join(config_dir, "settings.json")
+        loaded = dict(self.DEFAULT_SETTINGS)
         try:
             if os.path.exists(config_path):
                 with open(config_path, 'r') as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        loaded.update(data)
         except Exception as e:
             print(f"Error loading settings: {e}")
-        return {
-            "apt_enabled": True,
-            "flatpak_enabled": True,
-            "snap_enabled": True,
-            "appimage_enabled": True
-        }
+        return loaded
 
     def save_settings(self) -> None:
         """Saves current configuration to settings.json."""
