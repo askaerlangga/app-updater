@@ -5,32 +5,32 @@ Origin: App Updater Repository
 Label: App Updater
 Suite: stable
 Codename: stable
-Date: Fri, 28 Aug 2026 03:27:45 +0000
+Date: Fri, 28 Aug 2026 03:35:35 +0000
 Architectures: all
 Components: main
 Description: APT Repository for App Updater Desktop Application
 MD5Sum:
- 95105b29b626d867591ae0a6b5c643c0 4526 Packages
- 841f990b9a5a8a7050de8a0247f08ad3 1103 Packages.gz
+ 832e668bbc76a4489ed91c195840e1d4 5171 Packages
+ cf30c324851a52a091bd8dc41978e283 1204 Packages.gz
 SHA1:
- 6bba02dd28b214825d315788f0a776a46b0e728e 4526 Packages
- e44cbc9dd9a5a1b14a869257ce5344818a3415f4 1103 Packages.gz
+ 46e435b124b1ead355daa3bd3ea67b915f6d95ae 5171 Packages
+ cf09d00c2327c3531abe51be78eba9c459c7c102 1204 Packages.gz
 SHA256:
- c89ad8bb583c01b567f1ba2b3bd0659dc06660995600be75dcbc7f0c03edc1a1 4526 Packages
- 25c4466b4e5b77eb00002f30a56f4f1b61fb4733b8185fbaf3ecbec61599b4fb 1103 Packages.gz
+ c345d9944036081754405b5d74366bb626d7d70591c62d7658cfdc50d9b05f48 5171 Packages
+ 1532ade627a4f255eeafb39770250dc139106f5f033722b6ed94b05785b9faf6 1204 Packages.gz
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEEK5odMgNBRDJHvvRDM7W8+h2mYM4FAmqRADIACgkQM7W8+h2m
-YM43vBAAkBcOT0sLlCyddr/7TQg6YVYQR2HlzRCWSgMZWQoFq7RNajDFxREwB7rJ
-BeTVt+ypQiwksLY7wtUABhuZRqdNoMjGVjXgB2zEaosqxvtZBuKWEaSdRBUXocaQ
-iNobeJXqrio9/EYREKEiBe/tsGbKR0EZ04C3w9f9dGFpoB95KHt7I42d0QilNQ9Y
-gkYcMmEiZ6Q43/4C1neZMckhkneMDtdPm/6g6orawgPtc1APXfgJQwBM0CJZiva4
-YCQ88mDEfXHNPCyXwFxxIlVZn1P+XJVNfZEbcq7EqPmy4qt4HnlnBN0v1Wy8iEHg
-NsLGussEviflJ1LFDokJvzX68bBJgQIky2QjgwXQik7+PX0xDT1NCWjVaVW8UkKv
-DAzrxFB5TOE7kZLzHt4jxdMy9hWe+rXppwqHkhfmoMbjuIrWOIZj7vZAarQsB+rt
-JUJrNt0ham8dPDOqMhBsxq+JozgGqC7/YcTvNx8pCdbSKDuCdV8m/sg5xO8F+Vyp
-nWVUyFvTaYkv53WwonnD2NAaAuD4l6EAFLprAljrV8XFa1r9o/qS8R75MzXh79gj
-OatgeeYHNpO71nlplrhkdUI/A0KhPjM1x/NK0ahuH7onNBge9huInT3vBTuOsRue
-Ir8kjuj7Pl0QWKA6g+Iau2Uifa6t6gUzpnEJnchhdDoagF9+9ow=
-=iFE2
+iQIzBAEBCgAdFiEEK5odMgNBRDJHvvRDM7W8+h2mYM4FAmqRAggACgkQM7W8+h2m
+YM6WBBAAgV5r8flm1OCpwGtKhuPPENLFerBHx9BJPmwXSzwBpEEMkpBmzjvI3wup
+nmt/GRKwPdDNPN4mgrLel85PdHl2f7jQfNzME/Pa0eueiIEEhdl61LdOz5hUh/+8
+YeFCuBm8eyaC/xViFgJd/R+/N7addJqt6ZcJyXych7iyweklajanlbOQNa9H4smK
+0FIbdWK8ClBYlvRkfGwdZvaSgGrLCfxvkd4jMY2R95NXXKlF+gSdYwbQyPnqsFpe
+R1ZYq8zyMEvP8Yn2nW7wecQy9cobk9HlnBzeRA8J8mZgmVw4Pyi6kbLdbwaHZ6kd
+j2qvu9B9h3EvBKWYX3GpwzMxwJZZqOdlzyI24mGjrxaNz3OQbq6EXEWqUQgQLdKQ
+1Xe571yXqUv+i1m2y5FjiIxvuhxhl85kLuTL6xu8tKMilsJ1pv2NJUSnDaESp2jt
+H5jeURjRhmS5+YUSrY1zfihmLNv4W8+XWDE2ggYiEc9mCdDKIpR+lVTsd5grR53j
+8w8HiebvX2sReqgOGj9bNPwwa3yVxSjHoeWSBYlX4YLXdetbBwJjfyX+xBSmD0KG
+KYcJh4wL968vbOiPPnk9VTkUe2zjECTx0v70zSsdenVdW3YelHRN4AXaM34XOZvM
+HIABcwDaE6DewrTjc01LwaB/r/6bziF1eYNcgkn38wDEqNzrdu8=
+=1e2V
 -----END PGP SIGNATURE-----
