@@ -28,13 +28,13 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         # Load CSS Styles
         self.setup_styles()
         
-        # Main layout structure: Adw.ToolbarView
-        self.toolbar_view = Adw.ToolbarView()
-        self.set_content(self.toolbar_view)
+        # Main layout structure
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_content(self.main_box)
         
-        # Header Bar (Top Bar)
+        # Header Bar
         self.header_bar = Adw.HeaderBar()
-        self.toolbar_view.add_top_bar(self.header_bar)
+        self.main_box.append(self.header_bar)
         
         # Header Bar Buttons
         self.refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic")
@@ -54,11 +54,17 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         menu_model.append("About App Updater", "win.about")
         self.menu_button.set_menu_model(menu_model)
 
-        # View Container (Content Area)
+        # Overlay to allow the terminal log to overlay the entire view container in full window mode
+        self.overlay = Gtk.Overlay()
+        self.overlay.set_vexpand(True)
+        self.overlay.set_hexpand(True)
+        self.main_box.append(self.overlay)
+        
+        # View Container
         self.view_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.view_container.set_vexpand(True)
         self.view_container.set_hexpand(True)
-        self.toolbar_view.set_content(self.view_container)
+        self.overlay.set_child(self.view_container)
         
         # Preferences Page (main layout of cards)
         self.pref_page = Adw.PreferencesPage()
@@ -67,7 +73,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         # Create main updates group
         self.updates_group = Adw.PreferencesGroup(title="Available Updates")
         
-        # Status Page (when up to date, checking, or installing)
+        # Status Page (when up to date or checking)
         self.status_page = Adw.StatusPage()
         self.status_page.set_title("Loading...")
         self.status_page.set_description("Checking for available updates...")
@@ -76,20 +82,20 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.status_page.set_hexpand(True)
         self.view_container.append(self.status_page)
         
-        # Status Box to hold spinner, cancel button, and terminal console
+        # Status Box to hold spinner and cancel button
         self.status_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         self.status_box.set_halign(Gtk.Align.CENTER)
         self.status_box.set_valign(Gtk.Align.CENTER)
         self.status_page.set_child(self.status_box)
         
-        # Loading Spinner
+        # Loading Spinner Overlay
         self.spinner = Gtk.Spinner()
         self.spinner.set_halign(Gtk.Align.CENTER)
         self.spinner.set_valign(Gtk.Align.CENTER)
         self.spinner.set_size_request(32, 32)
         self.status_box.append(self.spinner)
         
-        # Cancel Button
+        # Cancel Button (will be appended to status_box)
         self.cancel_btn = Gtk.Button(label="Cancel Updates")
         self.cancel_btn.add_css_class("destructive-action")
         self.cancel_btn.add_css_class("pill")
@@ -98,24 +104,34 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.cancel_btn.connect("clicked", self.on_cancel_clicked)
         self.status_box.append(self.cancel_btn)
         
-        # Setup Log Expander directly in status_box
+        # Bottom container for log expander (placed at the bottom-left of the window as an overlay)
+        self.bottom_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.bottom_box.set_halign(Gtk.Align.START)
+        self.bottom_box.set_valign(Gtk.Align.END)
+        self.bottom_box.set_margin_start(16)
+        self.bottom_box.set_margin_bottom(16)
+        self.bottom_box.set_visible(False)
+        self.overlay.add_overlay(self.bottom_box)
+        
+        # Setup Log Expander
         self.setup_log_expander()
         
-        # Sticky Bottom Action Bar (in ToolbarView bottom bar)
-        self.action_bar = Gtk.ActionBar()
-        self.action_info_label = Gtk.Label(label="", xalign=0)
-        self.action_info_label.add_css_class("dim-label")
-        self.action_bar.pack_start(self.action_info_label)
+        # Create a group for the update all button
+        self.button_group = Adw.PreferencesGroup()
+        
+        # Button Container for "Update All"
+        self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.button_box.set_halign(Gtk.Align.CENTER)
+        self.button_box.set_margin_bottom(16)
+        self.button_box.set_margin_top(8)
         
         self.update_all_btn = Gtk.Button(label="Update All")
         self.update_all_btn.set_action_name("win.update-all")
         self.update_all_btn.add_css_class("suggested-action")
         self.update_all_btn.add_css_class("pill")
         self.update_all_btn.set_sensitive(False)
-        self.action_bar.pack_end(self.update_all_btn)
-        
-        self.toolbar_view.add_bottom_bar(self.action_bar)
-        self.action_bar.set_revealed(False)
+        self.button_box.append(self.update_all_btn)
+        self.button_group.add(self.button_box)
         
         # Data states
         self.updates_data: Dict[str, List[Dict[str, Any]]] = {
@@ -159,18 +175,21 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         )
 
     def setup_log_expander(self) -> None:
-        """Creates the console log area inside an expander embedded on the status page."""
+        """Creates the console log area inside an expander (dropdown) on the status page."""
         self.log_expander = Gtk.Expander(label="Show Details")
         self.log_expander.set_margin_top(8)
+        self.log_expander.set_margin_bottom(8)
         self.log_expander.set_visible(False)
-        self.log_expander.set_halign(Gtk.Align.CENTER)
-        self.status_box.append(self.log_expander)
+        self.bottom_box.append(self.log_expander)
+        
+        # Connect to expander signal to toggle full window mode
+        self.log_expander.connect("notify::expanded", self.on_log_expander_expanded)
         
         # Scrolled Text View for Terminal output
         self.log_scrolled = Gtk.ScrolledWindow()
-        self.log_scrolled.set_min_content_width(560)
-        self.log_scrolled.set_min_content_height(180)
-        self.log_scrolled.set_max_content_height(280)
+        self.log_scrolled.set_min_content_width(540)
+        self.log_scrolled.set_min_content_height(200)
+        self.log_scrolled.set_max_content_height(300)
         self.log_scrolled.add_css_class("terminal-container")
         self.log_expander.set_child(self.log_scrolled)
         
@@ -179,14 +198,47 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.log_text_view.set_cursor_visible(False)
         self.log_text_view.set_monospace(True)
         self.log_text_view.add_css_class("terminal")
-        self.log_text_view.set_left_margin(12)
-        self.log_text_view.set_right_margin(12)
+        self.log_text_view.set_left_margin(10)
+        self.log_text_view.set_right_margin(10)
         self.log_text_view.set_top_margin(10)
         self.log_text_view.set_bottom_margin(10)
         self.log_scrolled.set_child(self.log_text_view)
         
         self.log_buffer = self.log_text_view.get_buffer()
         self.log_scroll_mark = self.log_buffer.create_mark("scroll-mark", self.log_buffer.get_end_iter(), False)
+
+    def on_log_expander_expanded(self, expander: Gtk.Expander, pspec: Any) -> None:
+        """Toggles full window expansion mode for the terminal console."""
+        if expander.get_expanded():
+            self.bottom_box.set_halign(Gtk.Align.FILL)
+            self.bottom_box.set_valign(Gtk.Align.FILL)
+            self.bottom_box.set_margin_start(0)
+            self.bottom_box.set_margin_bottom(0)
+            self.bottom_box.set_margin_top(0)
+            self.bottom_box.set_margin_end(0)
+            
+            self.log_scrolled.set_min_content_width(-1)
+            self.log_scrolled.set_min_content_height(-1)
+            self.log_scrolled.set_max_content_height(-1)
+            self.log_scrolled.set_vexpand(True)
+            self.log_scrolled.set_hexpand(True)
+            self.log_text_view.set_vexpand(True)
+            self.log_text_view.set_hexpand(True)
+        else:
+            self.bottom_box.set_halign(Gtk.Align.START)
+            self.bottom_box.set_valign(Gtk.Align.END)
+            self.bottom_box.set_margin_start(16)
+            self.bottom_box.set_margin_bottom(16)
+            self.bottom_box.set_margin_top(0)
+            self.bottom_box.set_margin_end(0)
+            
+            self.log_scrolled.set_min_content_width(540)
+            self.log_scrolled.set_min_content_height(200)
+            self.log_scrolled.set_max_content_height(300)
+            self.log_scrolled.set_vexpand(False)
+            self.log_scrolled.set_hexpand(False)
+            self.log_text_view.set_vexpand(False)
+            self.log_text_view.set_hexpand(False)
 
     def append_log_line(self, line: str) -> None:
         """Safely appends a line to the text console from a worker thread."""
@@ -209,7 +261,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.update_all_btn.set_sensitive(False)
         
         if loading:
-            self.action_bar.set_revealed(False)
             self.spinner.set_visible(True)
             self.spinner.start()
             self.status_page.set_title(title)
@@ -220,15 +271,18 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             
             self.log_expander.set_visible(is_updating)
             if is_updating:
-                self.log_expander.set_expanded(True)
+                self.log_expander.set_expanded(False)
                 
             self.cancel_btn.set_visible(allow_cancel)
             self.cancel_btn.set_sensitive(True)
+            
+            self.bottom_box.set_visible(is_updating)
         else:
             self.spinner.stop()
             self.spinner.set_visible(False)
             self.cancel_btn.set_visible(False)
             self.log_expander.set_visible(False)
+            self.bottom_box.set_visible(False)
 
     def on_cancel_clicked(self, btn: Gtk.Button) -> None:
         btn.set_sensitive(False)
@@ -441,6 +495,9 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         if has_group_content:
             self.pref_page.add(self.updates_group)
             self.added_groups.add(self.updates_group)
+            
+            self.pref_page.add(self.button_group)
+            self.added_groups.add(self.button_group)
 
         # Toggle UI views based on updates found
         self.settings_manager.save_state(total_updates, updating=False)
@@ -451,18 +508,10 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             if hasattr(self, "update_all_action"):
                 self.update_all_action.set_enabled(True)
             
-            # Show sticky bottom action bar with summary
-            summary_text = f"{total_updates} update{'s' if total_updates > 1 else ''} available"
-            if total_size_str:
-                summary_text += f" · {total_size_str}"
-            self.action_info_label.set_text(summary_text)
-            self.action_bar.set_revealed(True)
-            
             # Send notification if the window is hidden (in background mode)
             if not self.get_visible():
                 self.send_update_notification(total_updates)
         else:
-            self.action_bar.set_revealed(False)
             # If running in background mode and no updates found, exit to save resources
             if not self.get_visible():
                 self.get_application().quit()
@@ -924,7 +973,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         about = Adw.AboutDialog(
             application_name="App Updater",
             application_icon="system-software-update",
-            version="1.3.0",
+            version="1.3.1",
             developer_name="Aska Erlangga",
             developers=["Aska Erlangga"],
             copyright="© 2026 Aska Erlangga",
