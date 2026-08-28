@@ -924,7 +924,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         about = Adw.AboutDialog(
             application_name="App Updater",
             application_icon="system-software-update",
-            version="1.2.1",
+            version="1.3.0",
             developer_name="Aska Erlangga",
             developers=["Aska Erlangga"],
             copyright="© 2026 Aska Erlangga",
