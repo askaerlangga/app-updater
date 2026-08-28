@@ -28,13 +28,13 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         # Load CSS Styles
         self.setup_styles()
         
-        # Main layout structure
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_content(self.main_box)
+        # Main layout structure: Adw.ToolbarView
+        self.toolbar_view = Adw.ToolbarView()
+        self.set_content(self.toolbar_view)
         
-        # Header Bar
+        # Header Bar (Top Bar)
         self.header_bar = Adw.HeaderBar()
-        self.main_box.append(self.header_bar)
+        self.toolbar_view.add_top_bar(self.header_bar)
         
         # Header Bar Buttons
         self.refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic")
@@ -58,7 +58,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.overlay = Gtk.Overlay()
         self.overlay.set_vexpand(True)
         self.overlay.set_hexpand(True)
-        self.main_box.append(self.overlay)
+        self.toolbar_view.set_content(self.overlay)
         
         # View Container
         self.view_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
