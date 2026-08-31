@@ -153,7 +153,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.check_for_updates()
 
     def setup_styles(self) -> None:
-        """Injects custom CSS styling for the terminal log console."""
+        """Injects custom CSS styling for badges, success circle, and the terminal log console."""
         provider = Gtk.CssProvider()
         provider.load_from_data(b"""
             .terminal {
@@ -166,6 +166,41 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 border: 1px solid @borders;
                 border-radius: 8px;
                 background-color: #1e1e2e;
+            }
+            .badge-security {
+                background-color: alpha(#e01b24, 0.15);
+                color: #e01b24;
+                border: 1px solid alpha(#e01b24, 0.28);
+                border-radius: 6px;
+                padding: 2px 8px;
+                font-size: 8.5pt;
+                font-weight: bold;
+            }
+            .badge-system {
+                background-color: alpha(#3584e4, 0.12);
+                color: #3584e4;
+                border: 1px solid alpha(#3584e4, 0.22);
+                border-radius: 6px;
+                padding: 2px 8px;
+                font-size: 8.5pt;
+                font-weight: 500;
+            }
+            .badge-count {
+                background-color: alpha(#3584e4, 0.15);
+                color: #3584e4;
+                border: 1px solid alpha(#3584e4, 0.28);
+                border-radius: 9999px;
+                padding: 2px 10px;
+                font-size: 9pt;
+                font-weight: bold;
+            }
+            statuspage.success-status image.icon {
+                color: #33d17a;
+                background-color: alpha(#33d17a, 0.12);
+                border: 1px solid alpha(#33d17a, 0.25);
+                border-radius: 9999px;
+                padding: 22px;
+                margin-bottom: 8px;
             }
         """)
         Gtk.StyleContext.add_provider_for_display(
@@ -261,6 +296,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         self.update_all_btn.set_sensitive(False)
         
         if loading:
+            self.status_page.remove_css_class("success-status")
             self.spinner.set_visible(True)
             self.spinner.start()
             self.status_page.set_title(title)
@@ -336,12 +372,14 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 pass
         self.added_groups.clear()
                 
-        # Compute total download size (only upgradable items)
+        # Compute total download size and total updates count
         total_size_bytes = 0
+        total_updates = 0
         for source, source_list in data.items():
             for item in source_list:
                 if source == 'AppImage' and not item.get('upgradable'):
                     continue
+                total_updates += 1
                 total_size_bytes += item.get('size_bytes', 0)
         
         total_size_str = updater_backend.format_size(total_size_bytes) if total_size_bytes > 0 else None
@@ -349,6 +387,11 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         # Recreate updates group
         group_subtitle = f"Total download size: {total_size_str}" if total_size_str else None
         self.updates_group = Adw.PreferencesGroup(title="Available Updates", description=group_subtitle)
+        if total_updates > 0:
+            self.total_badge = Gtk.Label(label=f"{total_updates} Updates Found")
+            self.total_badge.add_css_class("badge-count")
+            self.total_badge.set_valign(Gtk.Align.CENTER)
+            self.updates_group.set_header_suffix(self.total_badge)
         has_group_content = False
                 
         # Populate APT Group
@@ -367,7 +410,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             
             self.updates_group.add(self.apt_expander)
             has_group_content = True
-            total_updates += len(data['APT'])
             grouped_apt = defaultdict(list)
             for pkg in data['APT']:
                 s_name = pkg.get('source_name') or pkg['name']
@@ -376,6 +418,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             for s_name in sorted(grouped_apt.keys()):
                 packages = grouped_apt[s_name]
                 if len(packages) > 1:
+                    is_sub_sec = any(p.get('update_type') == 'Security' for p in packages)
                     sub_expander = Adw.ExpanderRow(
                         title=s_name,
                         subtitle=f"{len(packages)} packages ({', '.join(p['name'] for p in packages[:2])}...)"
@@ -384,11 +427,20 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                     icon_image = self.get_app_icon(icon_candidates, fallback="package-x-generic-symbolic")
                     sub_expander.add_prefix(icon_image)
                     
+                    sub_badge = Gtk.Label(label="Security" if is_sub_sec else "System")
+                    sub_badge.add_css_class("badge-security" if is_sub_sec else "badge-system")
+                    sub_badge.set_valign(Gtk.Align.CENTER)
+                    sub_expander.add_suffix(sub_badge)
+                    
                     for pkg in packages:
                         row = Adw.ActionRow(
                             title=pkg['name'],
                             subtitle=f"Installed: {pkg['current_version']} → Candidate: {pkg['new_version']} ({pkg['size']})"
                         )
+                        badge = Gtk.Label(label=pkg.get('update_type', 'System'))
+                        badge.add_css_class("badge-security" if pkg.get('update_type') == 'Security' else "badge-system")
+                        badge.set_valign(Gtk.Align.CENTER)
+                        row.add_suffix(badge)
                         sub_expander.add_row(row)
                         
                     self.apt_expander.add_row(sub_expander)
@@ -401,6 +453,12 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                     icon_candidates = self.get_apt_icon_candidates(pkg['name'])
                     icon_image = self.get_app_icon(icon_candidates, fallback="package-x-generic-symbolic")
                     row.add_prefix(icon_image)
+                    
+                    badge = Gtk.Label(label=pkg.get('update_type', 'System'))
+                    badge.add_css_class("badge-security" if pkg.get('update_type') == 'Security' else "badge-system")
+                    badge.set_valign(Gtk.Align.CENTER)
+                    row.add_suffix(badge)
+                    
                     self.apt_expander.add_row(row)
                 
         # Populate Flatpak Group
@@ -419,7 +477,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             
             self.updates_group.add(self.flatpak_expander)
             has_group_content = True
-            total_updates += len(data['Flatpak'])
             for app in data['Flatpak']:
                 row = Adw.ActionRow(
                     title=app['name'],
@@ -428,6 +485,12 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 icon_candidates = self.get_flatpak_icon_candidates(app['id'])
                 icon_image = self.get_app_icon(icon_candidates)
                 row.add_prefix(icon_image)
+                
+                badge = Gtk.Label(label="Flatpak")
+                badge.add_css_class("badge-system")
+                badge.set_valign(Gtk.Align.CENTER)
+                row.add_suffix(badge)
+                
                 self.flatpak_expander.add_row(row)
                 
         # Populate Snap Group
@@ -446,7 +509,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             
             self.updates_group.add(self.snap_expander)
             has_group_content = True
-            total_updates += len(data['Snap'])
             for snap in data['Snap']:
                 row = Adw.ActionRow(
                     title=snap['name'],
@@ -454,6 +516,12 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 )
                 icon_image = self.get_app_icon([snap.get('id', ''), snap.get('name', '')])
                 row.add_prefix(icon_image)
+                
+                badge = Gtk.Label(label="Snap")
+                badge.add_css_class("badge-system")
+                badge.set_valign(Gtk.Align.CENTER)
+                row.add_suffix(badge)
+                
                 self.snap_expander.add_row(row)
                 
         # Populate AppImage Group
@@ -466,7 +534,6 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                 upgradable_count = sum(1 for ai in appimages if ai.get('upgradable'))
                 
                 if upgradable_count > 0:
-                    total_updates += upgradable_count
                     appimage_size_bytes = sum(ai.get('size_bytes', 0) for ai in appimages if ai.get('upgradable'))
                     appimage_size_str = f" · {updater_backend.format_size(appimage_size_bytes)}" if appimage_size_bytes > 0 else ""
                     self.appimage_expander = Adw.ExpanderRow(
@@ -490,6 +557,12 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
                         icon_candidates = self.get_appimage_icon_candidates(ai['name'])
                         icon_image = self.get_app_icon(icon_candidates)
                         row.add_prefix(icon_image)
+                        
+                        badge = Gtk.Label(label="AppImage")
+                        badge.add_css_class("badge-system")
+                        badge.set_valign(Gtk.Align.CENTER)
+                        row.add_suffix(badge)
+                        
                         self.appimage_expander.add_row(row)
 
         if has_group_content:
@@ -522,6 +595,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
             self.status_page.set_title("System Up to Date")
             self.status_page.set_description("All applications and system packages are up to date.")
             self.status_page.set_icon_name("emblem-ok-symbolic")
+            self.status_page.add_css_class("success-status")
             self.update_all_btn.set_sensitive(False)
             if hasattr(self, "update_all_action"):
                 self.update_all_action.set_enabled(False)
@@ -973,7 +1047,7 @@ class AppUpdaterWindow(Adw.ApplicationWindow):
         about = Adw.AboutDialog(
             application_name="App Updater",
             application_icon="system-software-update",
-            version="1.3.3",
+            version="1.3.4",
             developer_name="Aska Erlangga",
             developers=["Aska Erlangga"],
             copyright="© 2026 Aska Erlangga",

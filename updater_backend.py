@@ -130,7 +130,14 @@ def check_apt_updates():
                 inst_ver = pkg.installed.version if pkg.installed else "None"
                 cand_ver = pkg.candidate.version if pkg.candidate else "None"
                 size = pkg.candidate.size if pkg.candidate else 0
-                source_name = pkg.candidate.source_name if (pkg.candidate and hasattr(pkg.candidate, 'source_name')) else pkg.name
+                cand = pkg.candidate
+                is_security = False
+                if cand and hasattr(cand, 'origins'):
+                    is_security = any(
+                        '-security' in (o.archive or '').lower() or 'security' in (o.label or '').lower()
+                        for o in cand.origins
+                    )
+                update_type = 'Security' if is_security else 'System'
                 
                 updates.append({
                     'id': pkg.name,
@@ -140,7 +147,8 @@ def check_apt_updates():
                     'size': format_size(size),
                     'size_bytes': size,
                     'source': 'APT',
-                    'source_name': source_name
+                    'source_name': source_name,
+                    'update_type': update_type
                 })
     except Exception as e:
         print(f"Error checking APT updates: {e}")
