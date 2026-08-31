@@ -2,16 +2,16 @@ Origin: App Updater Repository
 Label: App Updater
 Suite: stable
 Codename: stable
-Date: Fri, 28 Aug 2026 03:35:35 +0000
+Date: Mon, 31 Aug 2026 04:18:42 +0000
 Architectures: all
 Components: main
 Description: APT Repository for App Updater Desktop Application
 MD5Sum:
- 832e668bbc76a4489ed91c195840e1d4 5171 Packages
- cf30c324851a52a091bd8dc41978e283 1204 Packages.gz
+ 3b41ae071410c2cf6665164fe9759d12 5816 Packages
+ 33afc268f24af4095a6d8e5b0ae5b8a7 1307 Packages.gz
 SHA1:
- 46e435b124b1ead355daa3bd3ea67b915f6d95ae 5171 Packages
- cf09d00c2327c3531abe51be78eba9c459c7c102 1204 Packages.gz
+ 2f0581036b7ad7572af5d73bfee2aa1703ed2002 5816 Packages
+ 654abe2713f80eb0a137e4f2aadd48f54c2a8dca 1307 Packages.gz
 SHA256:
- c345d9944036081754405b5d74366bb626d7d70591c62d7658cfdc50d9b05f48 5171 Packages
- 1532ade627a4f255eeafb39770250dc139106f5f033722b6ed94b05785b9faf6 1204 Packages.gz
+ 7a9d302d4eb6d89815895e6124638f9a9b2e34287ea6d7ba2c63765ab4c02e1e 5816 Packages
+ 99d8c2e05fbaa0b4f9803b2502e2be74f3237b411d81088c9aa9bb43b7b4e8fb 1307 Packages.gz
