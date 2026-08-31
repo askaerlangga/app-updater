@@ -401,10 +401,10 @@ def execute_updates(sources_to_update, line_callback, done_callback):
             # 3. Flatpak Updates
             if 'Flatpak' in sources_to_update and not is_cancelled:
                 line_callback("\n>>> STARTING FLATPAK UPDATE <<<\n")
-                cmd = ["flatpak", "update", "-y", "--non-interactive"]
+                cmd = ["flatpak", "update", "-y", "--noninteractive"]
                 if run_command_stream(cmd, line_callback) == 0:
                     line_callback("\n>>> CLEANING UNUSED FLATPAK RUNTIMES <<<\n")
-                    cleanup_cmd = ["flatpak", "uninstall", "--unused", "-y", "--non-interactive"]
+                    cleanup_cmd = ["flatpak", "uninstall", "--unused", "-y", "--noninteractive"]
                     run_command_stream(cleanup_cmd, line_callback)
                 else:
                     failed_sources.append("Flatpak")

@@ -3,7 +3,7 @@
 set -e
 
 BUILD_DIR="/tmp/app-updater-build"
-VERSION="${1:-1.3.2}"
+VERSION="${1:-1.3.3}"
 # Get the version without leading 'v' if present (e.g., v1.0.0 -> 1.0.0)
 VERSION="${VERSION#v}"
 DEB_NAME="app-updater_${VERSION}_all.deb"
