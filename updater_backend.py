@@ -131,6 +131,7 @@ def check_apt_updates():
                 cand_ver = pkg.candidate.version if pkg.candidate else "None"
                 size = pkg.candidate.size if pkg.candidate else 0
                 cand = pkg.candidate
+                source_name = (cand.source_name if (cand and hasattr(cand, 'source_name') and cand.source_name) else pkg.name)
                 is_security = False
                 if cand and hasattr(cand, 'origins'):
                     is_security = any(

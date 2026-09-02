@@ -3,7 +3,7 @@
 set -e
 
 BUILD_DIR="/tmp/app-updater-build"
-VERSION="${1:-1.3.4}"
+VERSION="${1:-1.3.5}"
 # Get the version without leading 'v' if present (e.g., v1.0.0 -> 1.0.0)
 VERSION="${VERSION#v}"
 DEB_NAME="app-updater_${VERSION}_all.deb"
@@ -85,7 +85,10 @@ cp -v "$PROJECT_DIR/updater_backend.py" "$BUILD_DIR/usr/share/app-updater/"
 
 # 6. Build Debian package
 echo "Building Debian package (.deb)..."
-dpkg-deb --build "$BUILD_DIR" "$PROJECT_DIR/$DEB_NAME"
+chmod 755 "$BUILD_DIR/DEBIAN"
+chmod 644 "$BUILD_DIR/DEBIAN/control"
+find "$BUILD_DIR" -type d -exec chmod 755 {} +
+dpkg-deb --root-owner-group --build "$BUILD_DIR" "$PROJECT_DIR/$DEB_NAME"
 
 echo "Cleaning up build files..."
 rm -rf "$BUILD_DIR"
